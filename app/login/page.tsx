@@ -13,6 +13,8 @@ import {
   type LoginFormData,
 } from "@/lib/validations/auth";
 
+import { login } from "@/services/auth";
+
 export default function LoginPage() {
   const {
     register,
@@ -22,10 +24,15 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: LoginFormData) => {
-    console.log("Login data:", data);
-  };
+  const onSubmit = async (data: LoginFormData) => {
+  try {
+    const response = await login(data);
 
+    console.log("Login successful:", response);
+  } catch (error) {
+    console.error("Login failed:", error);
+  }
+};
   return (
     <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
