@@ -6,3 +6,24 @@ export const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+api.interceptors.request.use(
+  (config) => {
+    const authData = localStorage.getItem("blog-auth");
+
+    if (authData) {
+      const parsedAuth = JSON.parse(authData);
+
+      const token = parsedAuth.state?.token;
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
+);

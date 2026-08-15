@@ -12,6 +12,7 @@ import { loginSchema, type LoginFormData } from '@/lib/validations/auth';
 
 import { login } from '@/services/auth';
 import { useAuthStore } from '@/store/auth-store';
+import { getProfile } from '@/services/users';
 
 export default function LoginPage() {
   const {
@@ -25,16 +26,20 @@ export default function LoginPage() {
   const loginUser = useAuthStore((state) => state.login);
 
   const onSubmit = async (data: LoginFormData) => {
-    try {
-      const response = await login(data);
+  try {
+    const response = await login(data);
 
-      loginUser(response.token);
+    loginUser(response.token);
 
-      console.log('Login successful:', response);
-    } catch (error) {
-      console.error('Login failed:', error);
-    }
-  };
+    console.log("Login successful:", response);
+
+    const profile = await getProfile();
+
+    console.log("Authenticated user:", profile);
+  } catch (error) {
+    console.error("Login failed:", error);
+  }
+};
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   return (
     <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
