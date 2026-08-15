@@ -24,17 +24,22 @@ export default function LoginPage() {
   });
 
   const loginUser = useAuthStore((state) => state.login);
+  const setUser = useAuthStore((state) => state.setUser);
 
   const onSubmit = async (data: LoginFormData) => {
   try {
     const response = await login(data);
 
+    // 1. Save JWT
     loginUser(response.token);
 
-    console.log("Login successful:", response);
-
+    // 2. Use JWT to get authenticated user
     const profile = await getProfile();
 
+    // 3. Save user
+    setUser(profile);
+
+    console.log("Login successful");
     console.log("Authenticated user:", profile);
   } catch (error) {
     console.error("Login failed:", error);

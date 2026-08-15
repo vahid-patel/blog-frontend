@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface User {
   userId: string;
@@ -14,9 +14,9 @@ interface AuthState {
   isAuthenticated: boolean;
 
   login: (token: string) => void;
+  setUser: (user: User) => void;
   logout: () => void;
 }
-
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -30,6 +30,11 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
         }),
 
+      setUser: (user) =>
+        set({
+          user,
+        }),
+
       logout: () =>
         set({
           token: null,
@@ -38,7 +43,7 @@ export const useAuthStore = create<AuthState>()(
         }),
     }),
     {
-      name: "blog-auth",
-    },
-  ),
+      name: 'blog-auth',
+    }
+  )
 );
