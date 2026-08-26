@@ -25,26 +25,27 @@ export default function LoginPage() {
 
   const loginUser = useAuthStore((state) => state.login);
   const setUser = useAuthStore((state) => state.setUser);
+  const logout = useAuthStore((state) => state.logout);
 
   const onSubmit = async (data: LoginFormData) => {
-  try {
-    const response = await login(data);
+    try {
+      const response = await login(data);
 
-    // 1. Save JWT
-    loginUser(response.token);
+      // 1. Save JWT
+      loginUser(response.token);
 
-    // 2. Use JWT to get authenticated user
-    const profile = await getProfile();
+      // 2. Use JWT to get authenticated user
+      const profile = await getProfile();
 
-    // 3. Save user
-    setUser(profile);
+      // 3. Save user
+      setUser(profile);
 
-    console.log("Login successful");
-    console.log("Authenticated user:", profile);
-  } catch (error) {
-    console.error("Login failed:", error);
-  }
-};
+      console.log('Login successful');
+      console.log('Authenticated user:', profile);
+    } catch (error) {
+      console.error('Login failed:', error);
+    }
+  };
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   return (
     <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
@@ -111,6 +112,14 @@ export default function LoginPage() {
             Sign up
           </Link>
         </p>
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-3 w-full"
+          onClick={logout}
+        >
+          Logout
+        </Button>
       </div>
     </main>
   );
