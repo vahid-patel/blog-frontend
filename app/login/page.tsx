@@ -13,40 +13,42 @@ import { loginSchema, type LoginFormData } from '@/lib/validations/auth';
 import { login } from '@/services/auth';
 import { useAuthStore } from '@/store/auth-store';
 import { getProfile } from '@/services/users';
+import { useState } from 'react';
 
 export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
 
+  const [loginError, setLoginError] = useState('');
+
   const loginUser = useAuthStore((state) => state.login);
   const setUser = useAuthStore((state) => state.setUser);
-  const logout = useAuthStore((state) => state.logout);
 
   const onSubmit = async (data: LoginFormData) => {
     try {
+      setLoginError('');
+
       const response = await login(data);
 
-      // 1. Save JWT
+      // Save JWT
       loginUser(response.token);
 
-      // 2. Use JWT to get authenticated user
+      // Get authenticated user
       const profile = await getProfile();
 
-      // 3. Save user
+      // Save user
       setUser(profile);
-
-      console.log('Login successful');
-      console.log('Authenticated user:', profile);
-    } catch (error) {
-      console.error('Login failed:', error);
+    } catch (error: any) {
+      setLoginError(
+        error?.response?.data?.message || 'Invalid email or password.'
+      );
     }
   };
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   return (
     <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
@@ -58,9 +60,6 @@ export default function LoginPage() {
             Login to continue to your account
           </p>
         </div>
-        <p className="mt-4 text-center">
-          Authenticated: {isAuthenticated ? 'Yes' : 'No'}
-        </p>
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -105,9 +104,14 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {/* Submit */}
-          <Button type="submit" className="w-full">
-            Login
+          {loginError && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+              {loginError}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? 'Logging in...' : 'Login'}
           </Button>
         </form>
 
@@ -121,14 +125,6 @@ export default function LoginPage() {
             Sign up
           </Link>
         </p>
-        <Button
-          type="button"
-          variant="outline"
-          className="mt-3 w-full"
-          onClick={logout}
-        >
-          Logout
-        </Button>
       </div>
     </main>
   );
