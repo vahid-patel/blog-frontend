@@ -7,3 +7,12 @@ export function usePosts(page = 1, limit = 10) {
     queryFn: () => getPosts(page, limit),
   });
 }
+import { getPostById } from "@/services/posts";
+
+export function usePost(id: string) {
+  return useQuery({
+    queryKey: ["post", id],
+    queryFn: () => getPostById(id),
+    enabled: Boolean(id),
+  });
+}
