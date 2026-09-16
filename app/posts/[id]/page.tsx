@@ -19,8 +19,10 @@ interface PostDetailsPageProps {
 
 export default function PostDetailsPage({ params }: PostDetailsPageProps) {
   const { id } = use(params);
+  const router = useRouter();
   const { user } = useAuthStore();
   const { data: post, isLoading, isError } = usePost(id);
+  const deletePostMutation = useDeletePost();
 
   if (isLoading) {
     return (
@@ -69,8 +71,6 @@ export default function PostDetailsPage({ params }: PostDetailsPageProps) {
 
   const isAuthor = user?.userId === post.author?._id;
   const isAdmin = user?.role === 'ADMIN';
-  const deletePostMutation = useDeletePost();
-  const router = useRouter();
 
   const handleDelete = () => {
     if (window.confirm('Are you sure you want to permanently delete this post?')) {
