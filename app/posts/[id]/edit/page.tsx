@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { JSONContent } from '@tiptap/core';
 import { POST_CATEGORIES } from '@/lib/constants/post-categories';
-import { useCreatePost } from '@/hooks/use-create-post';
+import { usePost, useUpdatePost } from '@/hooks/use-posts';
 import { useAuthStore } from '@/store/auth-store';
 import PostEditor from '@/components/posts/post-editor';
 import PostContent from '@/components/posts/post-content';
@@ -17,26 +17,25 @@ import {
   Edit3,
   X,
   Plus,
-  Send,
-  FileText,
+  Save,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type PostStatus = 'DRAFT' | 'PUBLISHED';
 
-const emptyContent: JSONContent = {
-  type: 'doc',
-  content: [
-    {
-      type: 'paragraph',
-    },
-  ],
-};
+interface EditPostPageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
 
-export default function CreatePostPage() {
+export default function EditPostPage({ params }: EditPostPageProps) {
+  const { id } = use(params);
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
-  const createPostMutation = useCreatePost();
+  const { user, isAuthenticated } = useAuthStore();
+  const { data: post, isLoading, isError } = usePost(id);
+  const updatePostMutation = useUpdatePost(id);
 
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
   const [title, setTitle] = useState('');
@@ -46,7 +45,64 @@ export default function CreatePostPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [status, setStatus] = useState<PostStatus>('PUBLISHED');
-  const [content, setContent] = useState<JSONContent>(emptyContent);
+  const [content, setContent] = useState<JSONContent | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    if (post && !isInitialized) {
+      setTitle(post.title || '');
+      setSummary(post.summary || '');
+      setCoverImage(post.coverImage || '');
+      setCategory(post.category || '');
+      setTags(post.tags || []);
+      setStatus((post.status as PostStatus) || 'PUBLISHED');
+      setContent(post.content);
+      setIsInitialized(true);
+    }
+  }, [post, isInitialized]);
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </main>
+    );
+  }
+
+  if (isError || !post) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <div className="rounded-2xl border bg-card p-10 shadow-sm">
+          <h1 className="text-xl font-bold">Post not found</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The post you are trying to edit does not exist.
+          </p>
+          <Link href="/" className="mt-6 inline-block">
+            <Button variant="outline">Back to Home</Button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const isOwner = user?.userId === post.author?._id;
+  const isAdmin = user?.role === 'ADMIN';
+
+  if (!isAuthenticated || (!isOwner && !isAdmin)) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <div className="rounded-2xl border bg-card p-10 shadow-sm">
+          <h1 className="text-xl font-bold text-destructive">Unauthorized</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            You do not have permission to edit this post.
+          </p>
+          <Link href={`/posts/${id}`} className="mt-6 inline-block">
+            <Button variant="outline">Back to Post</Button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   const handleAddTag = () => {
     const trimmed = tagInput.trim().replace(/^#/, '').toLowerCase();
@@ -69,9 +125,9 @@ export default function CreatePostPage() {
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!title.trim() || createPostMutation.isPending) return;
+    if (!title.trim() || !content || updatePostMutation.isPending) return;
 
-    createPostMutation.mutate(
+    updatePostMutation.mutate(
       {
         title: title.trim(),
         summary: summary.trim() || undefined,
@@ -82,12 +138,8 @@ export default function CreatePostPage() {
         status,
       },
       {
-        onSuccess: (newPost) => {
-          if (newPost?._id) {
-            router.push(`/posts/${newPost._id}`);
-          } else {
-            router.push('/');
-          }
+        onSuccess: () => {
+          router.push(`/posts/${id}`);
         },
       }
     );
@@ -99,11 +151,11 @@ export default function CreatePostPage() {
         {/* Top Bar Navigation & Mode Switcher */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
           <Link
-            href="/"
+            href={`/posts/${id}`}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>Exit Editor</span>
+            <span>Cancel</span>
           </Link>
 
           {/* Edit / Preview Tabs */}
@@ -134,7 +186,7 @@ export default function CreatePostPage() {
             </button>
           </div>
 
-          {/* Publish Actions */}
+          {/* Save Actions */}
           <div className="flex items-center gap-2">
             <select
               value={status}
@@ -147,17 +199,13 @@ export default function CreatePostPage() {
 
             <Button
               onClick={() => handleSubmit()}
-              disabled={!title.trim() || createPostMutation.isPending}
+              disabled={!title.trim() || updatePostMutation.isPending}
               size="sm"
               className="gap-1.5 font-semibold"
             >
-              <Send className="h-3.5 w-3.5" />
+              <Save className="h-3.5 w-3.5" />
               <span>
-                {createPostMutation.isPending
-                  ? 'Saving...'
-                  : status === 'DRAFT'
-                  ? 'Save Draft'
-                  : 'Publish Post'}
+                {updatePostMutation.isPending ? 'Saving...' : 'Save Changes'}
               </span>
             </Button>
           </div>
@@ -254,7 +302,7 @@ export default function CreatePostPage() {
               <textarea
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
-                placeholder="Give readers a compelling 2-sentence preview of what they will discover..."
+                placeholder="Give readers a compelling preview..."
                 rows={2}
                 maxLength={500}
                 className="w-full resize-none rounded-xl border border-input bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
@@ -266,11 +314,13 @@ export default function CreatePostPage() {
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Story Content
               </label>
-              <PostEditor
-                initialContent={content}
-                onChange={setContent}
-                placeholder="Tell your story... You can add headings, code blocks, lists, quotes, and links."
-              />
+              {content && (
+                <PostEditor
+                  initialContent={content}
+                  onChange={setContent}
+                  placeholder="Revise your story..."
+                />
+              )}
             </div>
 
             {/* Interactive Tags */}
@@ -300,7 +350,7 @@ export default function CreatePostPage() {
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={handleTagKeyDown}
-                    placeholder={tags.length === 0 ? "e.g. nextjs, ai, design" : "Add tag..."}
+                    placeholder={tags.length === 0 ? "e.g. nextjs, ai" : "Add tag..."}
                     className="rounded-lg border border-input bg-background px-2.5 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
                   />
                   {tagInput.trim() && (
@@ -319,9 +369,9 @@ export default function CreatePostPage() {
             </div>
 
             {/* Error Banner */}
-            {createPostMutation.isError && (
+            {updatePostMutation.isError && (
               <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
-                Failed to create post. Please check your inputs and try again.
+                Failed to update post. Please try again.
               </div>
             )}
           </form>
@@ -356,7 +406,7 @@ export default function CreatePostPage() {
             )}
 
             <div className="mt-8 border-t pt-8">
-              <PostContent content={content} />
+              {content && <PostContent content={content} />}
             </div>
 
             {tags.length > 0 && (

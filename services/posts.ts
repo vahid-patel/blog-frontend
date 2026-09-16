@@ -91,3 +91,32 @@ export const getPostById = async (
 
   return response.data;
 };
+
+export type UpdatePostRequest = Partial<CreatePostRequest>;
+
+export const updatePost = async (
+  id: string,
+  data: UpdatePostRequest
+): Promise<Post> => {
+  const response = await api.patch<Post>(`/posts/${id}`, data);
+  return response.data;
+};
+
+export const deletePost = async (
+  id: string
+): Promise<{ message: string }> => {
+  const response = await api.delete<{ message: string }>(`/posts/${id}`);
+  return response.data;
+};
+
+export const searchPosts = async (
+  keyword: string,
+  page = 1,
+  limit = 10
+): Promise<GetPostsResponse> => {
+  const response = await api.get<GetPostsResponse>('/posts/search', {
+    params: { keyword, page, limit },
+  });
+  return response.data;
+};
+
