@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +18,8 @@ import { getProfile } from '@/services/users';
 import { useState } from 'react';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const {
     register,
     handleSubmit,
@@ -43,6 +47,14 @@ export default function LoginPage() {
 
       // Save user
       setUser(profile);
+
+      // Refresh post queries to fetch latest votes & feed state
+      await queryClient.invalidateQueries({ queryKey: ['posts'] });
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+
+      // Redirect to feed
+      router.push('/');
+      router.refresh();
     } catch (error: any) {
       setLoginError(
         error?.response?.data?.message || 'Invalid email or password.'

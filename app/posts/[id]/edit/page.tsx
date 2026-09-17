@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { JSONContent } from '@tiptap/core';
@@ -9,6 +9,7 @@ import { usePost, useUpdatePost } from '@/hooks/use-posts';
 import { useAuthStore } from '@/store/auth-store';
 import PostEditor from '@/components/posts/post-editor';
 import PostContent from '@/components/posts/post-content';
+import { uploadImage } from '@/services/upload';
 import {
   ArrowLeft,
   Image as ImageIcon,
@@ -19,6 +20,7 @@ import {
   Plus,
   Save,
   Loader2,
+  Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -41,6 +43,11 @@ export default function EditPostPage({ params }: EditPostPageProps) {
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [coverImage, setCoverImage] = useState('');
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [coverUploadError, setCoverUploadError] = useState('');
+  const [coverInputMode, setCoverInputMode] = useState<'upload' | 'url'>('upload');
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+
   const [category, setCategory] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
@@ -60,6 +67,42 @@ export default function EditPostPage({ params }: EditPostPageProps) {
       setIsInitialized(true);
     }
   }, [post, isInitialized]);
+
+  const handleCoverFileUpload = async (file: File) => {
+    if (!file.type.match(/^image\/(jpeg|jpg|png|webp|gif)$/i)) {
+      setCoverUploadError('Only JPG, PNG, WebP, and GIF images are allowed.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setCoverUploadError('Cover image exceeds 10MB limit.');
+      return;
+    }
+
+    try {
+      setIsUploadingCover(true);
+      setCoverUploadError('');
+      const result = await uploadImage(file);
+      if (result?.url) {
+        setCoverImage(result.url);
+      }
+    } catch (err: any) {
+      setCoverUploadError(
+        err?.response?.data?.message || 'Failed to upload cover image. Please try again.'
+      );
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
+  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleCoverFileUpload(file);
+    }
+    if (coverFileInputRef.current) {
+      coverFileInputRef.current.value = '';
+    }
+  };
 
   if (isLoading) {
     return (
@@ -199,7 +242,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
 
             <Button
               onClick={() => handleSubmit()}
-              disabled={!title.trim() || updatePostMutation.isPending}
+              disabled={!title.trim() || updatePostMutation.isPending || isUploadingCover}
               size="sm"
               className="gap-1.5 font-semibold"
             >
@@ -251,36 +294,98 @@ export default function EditPostPage({ params }: EditPostPageProps) {
                 </select>
               </div>
 
-              {/* Cover Image URL */}
+              {/* Cover Image Uploader */}
               <div className="space-y-2 rounded-2xl border bg-card p-4 shadow-xs">
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  <ImageIcon className="h-3.5 w-3.5" />
-                  <span>Cover Image URL</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    <span>Cover Image</span>
+                  </label>
+                  <div className="flex items-center gap-1 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setCoverInputMode('upload')}
+                      className={`px-2 py-0.5 rounded-md font-medium transition ${
+                        coverInputMode === 'upload'
+                          ? 'bg-primary/10 text-primary font-bold'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Upload
+                    </button>
+                    <span>|</span>
+                    <button
+                      type="button"
+                      onClick={() => setCoverInputMode('url')}
+                      className={`px-2 py-0.5 rounded-md font-medium transition ${
+                        coverInputMode === 'url'
+                          ? 'bg-primary/10 text-primary font-bold'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      URL
+                    </button>
+                  </div>
+                </div>
+
                 <input
-                  type="url"
-                  value={coverImage}
-                  onChange={(e) => setCoverImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                  type="file"
+                  ref={coverFileInputRef}
+                  onChange={handleCoverFileChange}
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
                 />
+
+                {coverInputMode === 'upload' ? (
+                  <div
+                    onClick={() => coverFileInputRef.current?.click()}
+                    className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-background/50 p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/40 transition"
+                  >
+                    {isUploadingCover ? (
+                      <div className="flex items-center gap-2 text-xs font-medium text-primary">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Optimizing & Uploading to Cloudinary...</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                        <Upload className="h-5 w-5 text-primary" />
+                        <span className="text-xs font-medium text-foreground">
+                          Click to upload new cover photo
+                        </span>
+                        <span className="text-[11px]">Auto-compressed & resized</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <input
+                    type="url"
+                    value={coverImage}
+                    onChange={(e) => setCoverImage(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                )}
+
+                {coverUploadError && (
+                  <p className="text-xs text-destructive">{coverUploadError}</p>
+                )}
               </div>
             </div>
 
             {/* Cover Image Preview */}
             {coverImage && (
-              <div className="relative overflow-hidden rounded-2xl border bg-card max-h-64 shadow-xs">
+              <div className="relative overflow-hidden rounded-2xl border bg-card max-h-72 shadow-xs">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={coverImage}
                   alt="Cover preview"
-                  className="w-full h-64 object-cover"
+                  className="w-full h-72 object-cover"
                   onError={() => {}}
                 />
                 <button
                   type="button"
                   onClick={() => setCoverImage('')}
-                  className="absolute right-3 top-3 rounded-full bg-background/80 p-1.5 text-foreground backdrop-blur-sm hover:bg-background shadow-xs"
+                  className="absolute right-3 top-3 rounded-full bg-background/80 p-1.5 text-foreground backdrop-blur-sm hover:bg-background shadow-xs transition"
                   title="Remove cover image"
                 >
                   <X className="h-4 w-4" />
