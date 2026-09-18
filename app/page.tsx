@@ -161,7 +161,7 @@ export default function Home() {
 
             {!hasNextPage && allPosts.length > 0 && (
               <p className="pt-8 text-center text-xs text-muted-foreground">
-                You've reached the end of the feed.
+                You&apos;ve reached the end of the feed.
               </p>
             )}
           </div>

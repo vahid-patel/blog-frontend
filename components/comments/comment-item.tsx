@@ -32,6 +32,7 @@ interface CommentItemProps {
   postId: string;
   isReply?: boolean;
   parentCommentId?: string;
+  depth?: number;
 }
 
 export default function CommentItem({
@@ -39,6 +40,7 @@ export default function CommentItem({
   postId,
   isReply = false,
   parentCommentId,
+  depth = 0,
 }: CommentItemProps) {
   const { user } = useAuthStore();
   const [isReplying, setIsReplying] = useState(false);
@@ -48,7 +50,7 @@ export default function CommentItem({
   const isOwner = user?.userId === comment.author?._id;
   const isAdmin = user?.role === 'ADMIN';
 
-  // Replies query for top-level comments
+  // Replies query for comments/replies
   const {
     data: repliesData,
     isLoading: isLoadingReplies,
@@ -99,8 +101,23 @@ export default function CommentItem({
     }
   };
 
+  const hasReplies =
+    (comment.repliesCount && comment.repliesCount > 0) ||
+    (repliesData?.replies && repliesData.replies.length > 0) ||
+    showReplies;
+
+  const repliesCount = repliesData?.replies?.length ?? comment.repliesCount ?? 0;
+
   return (
-    <div className={`group relative ${isReply ? 'mt-3 pl-4 border-l-2 border-border/60' : 'py-4 border-b border-border/40'}`}>
+    <div
+      className={`group relative ${
+        isReply
+          ? depth > 3
+            ? 'mt-3 pl-3 border-l-2 border-primary/30'
+            : 'mt-3 pl-4 border-l-2 border-border/70'
+          : 'py-4 border-b border-border/40'
+      }`}
+    >
       {/* Author & Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -183,28 +200,30 @@ export default function CommentItem({
               score={comment.score}
             />
 
-            {/* Reply toggle (allowed for top-level comments) */}
-            {!isReply && (
-              <button
-                type="button"
-                onClick={() => setIsReplying(!isReplying)}
-                className="inline-flex items-center gap-1 font-medium hover:text-foreground transition-colors"
-              >
-                <MessageSquare className="h-3.5 w-3.5" />
-                <span>Reply</span>
-              </button>
-            )}
+            {/* Reply toggle - available for top-level and nested replies */}
+            <button
+              type="button"
+              onClick={() => setIsReplying(!isReplying)}
+              className="inline-flex items-center gap-1 font-medium hover:text-foreground transition-colors"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              <span>Reply</span>
+            </button>
 
-            {/* View Replies Toggle */}
-            {!isReply && (
+            {/* View Replies Toggle if there are replies or user is viewing */}
+            {hasReplies && (
               <button
                 type="button"
                 onClick={() => setShowReplies(!showReplies)}
-                className="inline-flex items-center gap-1 font-medium text-primary/80 hover:text-primary transition-colors"
+                className="inline-flex items-center gap-1 font-medium text-primary/90 hover:text-primary transition-colors"
               >
                 <CornerDownRight className="h-3.5 w-3.5" />
                 <span>
-                  {showReplies ? 'Hide replies' : 'Show replies'}
+                  {showReplies
+                    ? 'Hide replies'
+                    : repliesCount > 0
+                    ? `Show ${repliesCount} ${repliesCount === 1 ? 'reply' : 'replies'}`
+                    : 'Show replies'}
                 </span>
                 {showReplies ? (
                   <ChevronUp className="h-3 w-3" />
@@ -245,6 +264,7 @@ export default function CommentItem({
                   postId={postId}
                   isReply={true}
                   parentCommentId={comment._id}
+                  depth={depth + 1}
                 />
               ))
             ) : (

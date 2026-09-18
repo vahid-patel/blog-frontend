@@ -55,10 +55,11 @@ export default function LoginPage() {
       // Redirect to feed
       router.push('/');
       router.refresh();
-    } catch (error: any) {
-      setLoginError(
-        error?.response?.data?.message || 'Invalid email or password.'
-      );
+    } catch (error: unknown) {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || 'Invalid email or password.';
+      setLoginError(msg);
     }
   };
   return (
@@ -129,7 +130,7 @@ export default function LoginPage() {
 
         {/* Signup */}
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link
             href="/signup"
             className="font-medium text-foreground underline"

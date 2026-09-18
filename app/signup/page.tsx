@@ -30,10 +30,11 @@ export default function SignupPage() {
       setSignupError('');
       await signup(data);
       router.push(`/verify-otp?email=${encodeURIComponent(data.email)}`);
-    } catch (error: any) {
-      setSignupError(
-        error?.response?.data?.message || 'Failed to create account. Please try again.'
-      );
+    } catch (error: unknown) {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || 'Failed to create account. Please try again.';
+      setSignupError(msg);
     }
   };
 

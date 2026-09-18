@@ -45,6 +45,7 @@ export function useCreateComment(postId: string) {
           queryKey: ['replies', variables.parentComment],
         });
       }
+      queryClient.invalidateQueries({ queryKey: ['replies'] });
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       queryClient.invalidateQueries({ queryKey: ['post', postId] });
     },
@@ -68,6 +69,7 @@ export function useUpdateComment(postId: string, parentCommentId?: string) {
           queryKey: ['replies', parentCommentId],
         });
       }
+      queryClient.invalidateQueries({ queryKey: ['replies'] });
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
     },
   });
@@ -84,6 +86,7 @@ export function useDeleteComment(postId: string, parentCommentId?: string) {
           queryKey: ['replies', parentCommentId],
         });
       }
+      queryClient.invalidateQueries({ queryKey: ['replies'] });
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       queryClient.invalidateQueries({ queryKey: ['post', postId] });
     },

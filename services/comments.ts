@@ -15,6 +15,7 @@ export interface Comment {
   upvotesCount: number;
   downvotesCount: number;
   score: number;
+  repliesCount?: number;
   createdAt: string;
   updatedAt: string;
 }

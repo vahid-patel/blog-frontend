@@ -123,10 +123,11 @@ export default function PostEditor({
         if (result?.url) {
           editor.chain().focus().setImage({ src: result.url }).run();
         }
-      } catch (err: any) {
-        setUploadError(
-          err?.response?.data?.message || 'Failed to upload image. Please try again.'
-        );
+      } catch (err: unknown) {
+        const errorMsg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data
+            ?.message || 'Failed to upload image. Please try again.';
+        setUploadError(errorMsg);
       } finally {
         setIsUploading(false);
       }
@@ -194,8 +195,6 @@ export default function PostEditor({
       const incoming = JSON.stringify(initialContent);
       if (current !== incoming) {
         editor.commands.setContent(initialContent);
-        const text = editor.getText();
-        setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
       }
     }
   }, [editor, initialContent]);
@@ -223,7 +222,7 @@ export default function PostEditor({
     <div
       onPaste={handlePaste}
       onDrop={handleDrop}
-      className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs transition-all focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10"
+      className="relative rounded-2xl border border-border/80 bg-card shadow-xs transition-all focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10"
     >
       {/* Hidden file input for device image upload */}
       <input
@@ -234,8 +233,8 @@ export default function PostEditor({
         className="hidden"
       />
 
-      {/* Sleek Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 border-b border-border/70 bg-muted/40 p-2 backdrop-blur-xs">
+      {/* Sleek Sticky Toolbar */}
+      <div className="sticky top-16 z-20 flex flex-wrap items-center gap-1 rounded-t-2xl border-b border-border/70 bg-card/95 p-2 backdrop-blur-md shadow-xs">
         {/* Undo / Redo */}
         <div className="flex items-center gap-0.5 pr-1 border-r border-border/60">
           <Button

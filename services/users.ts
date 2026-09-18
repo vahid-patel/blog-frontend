@@ -1,10 +1,13 @@
 import { api } from "./api";
 
 export interface UserProfile {
+  _id?: string;
   userId: string;
   name: string;
   email: string;
   role: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface UpdateProfileRequest {

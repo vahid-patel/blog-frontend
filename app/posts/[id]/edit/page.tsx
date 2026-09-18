@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, use, useRef } from 'react';
+import { useState, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { JSONContent } from '@tiptap/core';
 import { POST_CATEGORIES } from '@/lib/constants/post-categories';
 import { usePost, useUpdatePost } from '@/hooks/use-posts';
+import type { Post } from '@/services/posts';
 import { useAuthStore } from '@/store/auth-store';
 import PostEditor from '@/components/posts/post-editor';
 import PostContent from '@/components/posts/post-content';
@@ -32,41 +33,30 @@ interface EditPostPageProps {
   }>;
 }
 
-export default function EditPostPage({ params }: EditPostPageProps) {
-  const { id } = use(params);
+interface EditPostFormProps {
+  post: Post;
+  id: string;
+}
+
+function EditPostForm({ post, id }: EditPostFormProps) {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
-  const { data: post, isLoading, isError } = usePost(id);
   const updatePostMutation = useUpdatePost(id);
 
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
-  const [title, setTitle] = useState('');
-  const [summary, setSummary] = useState('');
-  const [coverImage, setCoverImage] = useState('');
+  const [title, setTitle] = useState(post.title || '');
+  const [summary, setSummary] = useState(post.summary || '');
+  const [coverImage, setCoverImage] = useState(post.coverImage || '');
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [coverUploadError, setCoverUploadError] = useState('');
   const [coverInputMode, setCoverInputMode] = useState<'upload' | 'url'>('upload');
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
-  const [category, setCategory] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
+  const [category, setCategory] = useState(post.category || '');
+  const [validationError, setValidationError] = useState('');
+  const [tags, setTags] = useState<string[]>(post.tags || []);
   const [tagInput, setTagInput] = useState('');
-  const [status, setStatus] = useState<PostStatus>('PUBLISHED');
-  const [content, setContent] = useState<JSONContent | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  useEffect(() => {
-    if (post && !isInitialized) {
-      setTitle(post.title || '');
-      setSummary(post.summary || '');
-      setCoverImage(post.coverImage || '');
-      setCategory(post.category || '');
-      setTags(post.tags || []);
-      setStatus((post.status as PostStatus) || 'PUBLISHED');
-      setContent(post.content);
-      setIsInitialized(true);
-    }
-  }, [post, isInitialized]);
+  const [status, setStatus] = useState<PostStatus>((post.status as PostStatus) || 'PUBLISHED');
+  const [content, setContent] = useState<JSONContent | null>(post.content || null);
 
   const handleCoverFileUpload = async (file: File) => {
     if (!file.type.match(/^image\/(jpeg|jpg|png|webp|gif)$/i)) {
@@ -85,10 +75,11 @@ export default function EditPostPage({ params }: EditPostPageProps) {
       if (result?.url) {
         setCoverImage(result.url);
       }
-    } catch (err: any) {
-      setCoverUploadError(
-        err?.response?.data?.message || 'Failed to upload cover image. Please try again.'
-      );
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || 'Failed to upload cover image. Please try again.';
+      setCoverUploadError(msg);
     } finally {
       setIsUploadingCover(false);
     }
@@ -103,49 +94,6 @@ export default function EditPostPage({ params }: EditPostPageProps) {
       coverFileInputRef.current.value = '';
     }
   };
-
-  if (isLoading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </main>
-    );
-  }
-
-  if (isError || !post) {
-    return (
-      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <div className="rounded-2xl border bg-card p-10 shadow-sm">
-          <h1 className="text-xl font-bold">Post not found</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            The post you are trying to edit does not exist.
-          </p>
-          <Link href="/" className="mt-6 inline-block">
-            <Button variant="outline">Back to Home</Button>
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  const isOwner = user?.userId === post.author?._id;
-  const isAdmin = user?.role === 'ADMIN';
-
-  if (!isAuthenticated || (!isOwner && !isAdmin)) {
-    return (
-      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <div className="rounded-2xl border bg-card p-10 shadow-sm">
-          <h1 className="text-xl font-bold text-destructive">Unauthorized</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            You do not have permission to edit this post.
-          </p>
-          <Link href={`/posts/${id}`} className="mt-6 inline-block">
-            <Button variant="outline">Back to Post</Button>
-          </Link>
-        </div>
-      </main>
-    );
-  }
 
   const handleAddTag = () => {
     const trimmed = tagInput.trim().replace(/^#/, '').toLowerCase();
@@ -168,16 +116,26 @@ export default function EditPostPage({ params }: EditPostPageProps) {
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!title.trim() || !content || updatePostMutation.isPending) return;
+    if (updatePostMutation.isPending) return;
+
+    if (!title.trim()) {
+      setValidationError('Please enter a post title.');
+      return;
+    }
+    if (!category) {
+      setValidationError('Please select a topic category.');
+      return;
+    }
+    setValidationError('');
 
     updatePostMutation.mutate(
       {
         title: title.trim(),
         summary: summary.trim() || undefined,
         coverImage: coverImage.trim() || undefined,
-        category: category || undefined,
+        category: category,
         tags,
-        content,
+        content: content || undefined,
         status,
       },
       {
@@ -242,7 +200,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
 
             <Button
               onClick={() => handleSubmit()}
-              disabled={!title.trim() || updatePostMutation.isPending || isUploadingCover}
+              disabled={!title.trim() || !category || updatePostMutation.isPending || isUploadingCover}
               size="sm"
               className="gap-1.5 font-semibold"
             >
@@ -262,7 +220,10 @@ export default function EditPostPage({ params }: EditPostPageProps) {
               <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (validationError) setValidationError('');
+                }}
                 placeholder="Title of your story..."
                 maxLength={300}
                 className="w-full bg-transparent text-3xl font-extrabold tracking-tight placeholder:text-muted-foreground/50 focus:outline-none sm:text-4xl"
@@ -277,15 +238,22 @@ export default function EditPostPage({ params }: EditPostPageProps) {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Category */}
               <div className="space-y-2 rounded-2xl border bg-card p-4 shadow-xs">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Topic Category
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Topic Category <span className="text-destructive">*</span>
+                  </label>
+                  <span className="text-[11px] font-semibold text-primary">Compulsory</span>
+                </div>
                 <select
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(e) => {
+                    setCategory(e.target.value);
+                    if (validationError) setValidationError('');
+                  }}
+                  required
                   className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="">Select category (optional)</option>
+                  <option value="">Select category (compulsory)...</option>
                   {POST_CATEGORIES.map((cat) => (
                     <option key={cat.value} value={cat.value}>
                       {cat.label}
@@ -305,95 +273,95 @@ export default function EditPostPage({ params }: EditPostPageProps) {
                     <button
                       type="button"
                       onClick={() => setCoverInputMode('upload')}
-                      className={`px-2 py-0.5 rounded-md font-medium transition ${
+                      className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
                         coverInputMode === 'upload'
-                          ? 'bg-primary/10 text-primary font-bold'
+                          ? 'bg-primary text-primary-foreground'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      Upload
+                      Device Upload
                     </button>
-                    <span>|</span>
                     <button
                       type="button"
                       onClick={() => setCoverInputMode('url')}
-                      className={`px-2 py-0.5 rounded-md font-medium transition ${
+                      className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
                         coverInputMode === 'url'
-                          ? 'bg-primary/10 text-primary font-bold'
+                          ? 'bg-primary text-primary-foreground'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      URL
+                      Image URL
                     </button>
                   </div>
                 </div>
 
-                <input
-                  type="file"
-                  ref={coverFileInputRef}
-                  onChange={handleCoverFileChange}
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="hidden"
-                />
-
                 {coverInputMode === 'upload' ? (
-                  <div
-                    onClick={() => coverFileInputRef.current?.click()}
-                    className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-background/50 p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/40 transition"
-                  >
-                    {isUploadingCover ? (
-                      <div className="flex items-center gap-2 text-xs font-medium text-primary">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Optimizing & Uploading to Cloudinary...</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-1 text-muted-foreground">
-                        <Upload className="h-5 w-5 text-primary" />
-                        <span className="text-xs font-medium text-foreground">
-                          Click to upload new cover photo
-                        </span>
-                        <span className="text-[11px]">Auto-compressed & resized</span>
-                      </div>
-                    )}
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      ref={coverFileInputRef}
+                      onChange={handleCoverFileChange}
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => coverFileInputRef.current?.click()}
+                      disabled={isUploadingCover}
+                      className="w-full justify-center gap-2 border-dashed py-5 text-xs text-muted-foreground hover:border-primary hover:text-primary"
+                    >
+                      {isUploadingCover ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <span>Uploading image...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4" />
+                          <span>Choose image file from computer</span>
+                        </>
+                      )}
+                    </Button>
                   </div>
                 ) : (
                   <input
                     type="url"
                     value={coverImage}
                     onChange={(e) => setCoverImage(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://images.unsplash.com/photo-..."
                     className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 )}
 
                 {coverUploadError && (
-                  <p className="text-xs text-destructive">{coverUploadError}</p>
+                  <p className="text-xs font-medium text-destructive">
+                    {coverUploadError}
+                  </p>
+                )}
+
+                {coverImage && (
+                  <div className="relative mt-2 overflow-hidden rounded-xl border border-border/80">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={coverImage}
+                      alt="Cover Preview"
+                      className="h-32 w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setCoverImage('')}
+                      className="absolute right-2 top-2 rounded-full bg-background/80 p-1 text-foreground shadow-xs backdrop-blur-xs hover:bg-background"
+                      title="Remove cover"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Cover Image Preview */}
-            {coverImage && (
-              <div className="relative overflow-hidden rounded-2xl border bg-card max-h-72 shadow-xs">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={coverImage}
-                  alt="Cover preview"
-                  className="w-full h-72 object-cover"
-                  onError={() => {}}
-                />
-                <button
-                  type="button"
-                  onClick={() => setCoverImage('')}
-                  className="absolute right-3 top-3 rounded-full bg-background/80 p-1.5 text-foreground backdrop-blur-sm hover:bg-background shadow-xs transition"
-                  title="Remove cover image"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-
-            {/* Summary Lead */}
+            {/* Summary / Hook */}
             <div className="space-y-2 rounded-2xl border bg-card p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -407,14 +375,14 @@ export default function EditPostPage({ params }: EditPostPageProps) {
               <textarea
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
-                placeholder="Give readers a compelling preview..."
+                placeholder="Give readers a compelling 2-sentence preview of what they will discover..."
                 rows={2}
                 maxLength={500}
                 className="w-full resize-none rounded-xl border border-input bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
-            {/* Tiptap Rich-Text Editor */}
+            {/* Tiptap Rich-Text Editor with direct image uploads */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Story Content
@@ -423,7 +391,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
                 <PostEditor
                   initialContent={content}
                   onChange={setContent}
-                  placeholder="Revise your story..."
+                  placeholder="Tell your story... You can add headings, code blocks, lists, quotes, and drop images anywhere."
                 />
               )}
             </div>
@@ -455,7 +423,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={handleTagKeyDown}
-                    placeholder={tags.length === 0 ? "e.g. nextjs, ai" : "Add tag..."}
+                    placeholder={tags.length === 0 ? "e.g. nextjs, ai, design" : "Add tag..."}
                     className="rounded-lg border border-input bg-background px-2.5 py-1 text-xs outline-none focus:ring-1 focus:ring-primary"
                   />
                   {tagInput.trim() && (
@@ -473,12 +441,48 @@ export default function EditPostPage({ params }: EditPostPageProps) {
               </div>
             </div>
 
+            {/* Validation Error Banner */}
+            {validationError && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm font-medium text-destructive">
+                {validationError}
+              </div>
+            )}
+
             {/* Error Banner */}
             {updatePostMutation.isError && (
               <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
                 Failed to update post. Please try again.
               </div>
             )}
+
+            {/* Bottom Save Action Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-card p-4 shadow-sm">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Post Visibility:
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as PostStatus)}
+                  className="rounded-lg border bg-background px-3 py-1.5 text-xs font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="PUBLISHED">Public (Publish to feed)</option>
+                  <option value="DRAFT">Draft (Save privately)</option>
+                </select>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={!title.trim() || !category || updatePostMutation.isPending || isUploadingCover}
+                size="default"
+                className="gap-2 font-semibold px-6 shadow-sm"
+              >
+                <Save className="h-4 w-4" />
+                <span>
+                  {updatePostMutation.isPending ? 'Saving changes...' : 'Save Changes'}
+                </span>
+              </Button>
+            </div>
           </form>
         ) : (
           /* Tab 2: LIVE PREVIEW MODE */
@@ -531,4 +535,55 @@ export default function EditPostPage({ params }: EditPostPageProps) {
       </div>
     </main>
   );
+}
+
+export default function EditPostPage({ params }: EditPostPageProps) {
+  const { id } = use(params);
+  const { user, isAuthenticated } = useAuthStore();
+  const { data: post, isLoading, isError } = usePost(id);
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </main>
+    );
+  }
+
+  if (isError || !post) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <div className="rounded-2xl border bg-card p-10 shadow-sm">
+          <h1 className="text-xl font-bold">Post not found</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The post you are trying to edit does not exist.
+          </p>
+          <Link href="/" className="mt-6 inline-block">
+            <Button variant="outline">Back to Home</Button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const isOwner = user?.userId === post.author?._id;
+  const isAdmin = user?.role === 'ADMIN';
+
+  if (!isAuthenticated || (!isOwner && !isAdmin)) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <div className="rounded-2xl border bg-card p-10 shadow-sm">
+          <h1 className="text-xl font-bold text-destructive">Unauthorized</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            You do not have permission to edit this post.
+          </p>
+          <Link href={`/posts/${id}`} className="mt-6 inline-block">
+            <Button variant="outline">Back to Post</Button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  return <EditPostForm post={post} id={id} />;
 }

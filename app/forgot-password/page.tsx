@@ -24,10 +24,11 @@ export default function ForgotPasswordPage() {
 
       const response = await forgotPassword({ email: email.trim() });
       setMessage(response.message || 'Password reset link sent to your email.');
-    } catch (error: any) {
-      setError(
-        error?.response?.data?.message || 'Unable to process your request. Please try again.'
-      );
+    } catch (error: unknown) {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || 'Unable to process your request. Please try again.';
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }

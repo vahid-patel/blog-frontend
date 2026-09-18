@@ -42,10 +42,11 @@ function VerifyOtpContent() {
       });
 
       router.push('/login');
-    } catch (error: any) {
-      setError(
-        error?.response?.data?.message || 'Invalid or expired verification code.'
-      );
+    } catch (error: unknown) {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || 'Invalid or expired verification code.';
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }

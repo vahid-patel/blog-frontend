@@ -5,13 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getMyPostVote, votePost, type VoteType } from '@/services/votes';
 import { useAuthStore } from '@/store/auth-store';
 
-interface InitialCounts {
-  upvotesCount: number;
-  downvotesCount: number;
-  score: number;
-}
-
-export function usePostVote(postId: string, initialCounts?: InitialCounts) {
+export function usePostVote(postId: string) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();

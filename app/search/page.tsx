@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSearchPosts, usePosts } from '@/hooks/use-posts';
 import PostCard from '@/components/posts/post-card';
@@ -28,11 +28,6 @@ function SearchPageContent() {
     data: fallbackData,
     isLoading: isFallbackLoading,
   } = usePosts(1, 20);
-
-  useEffect(() => {
-    setKeyword(searchParams.get('keyword') || '');
-    setSelectedCategory(searchParams.get('category') || '');
-  }, [searchParams]);
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -159,7 +154,7 @@ function SearchPageContent() {
             {isQuerying ? (
               <span>
                 Search results for{' '}
-                <strong className="text-foreground">"{initialKeyword}"</strong>
+                <strong className="text-foreground">&ldquo;{initialKeyword}&rdquo;</strong>
               </span>
             ) : selectedCategory ? (
               <span>

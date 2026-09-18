@@ -58,10 +58,11 @@ function ResetPasswordContent() {
       setTimeout(() => {
         router.push('/login');
       }, 1500);
-    } catch (error: any) {
-      setError(
-        error?.response?.data?.message || 'Unable to reset password. The link may have expired.'
-      );
+    } catch (error: unknown) {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || 'Unable to reset password. The link may have expired.';
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }

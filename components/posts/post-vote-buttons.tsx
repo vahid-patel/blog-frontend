@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils';
 interface PostVoteButtonsProps {
   postId: string;
   score: number;
-  upvotesCount: number;
-  downvotesCount: number;
+  upvotesCount?: number;
+  downvotesCount?: number;
   layout?: 'horizontal' | 'vertical';
   className?: string;
 }
@@ -16,16 +16,10 @@ interface PostVoteButtonsProps {
 export default function PostVoteButtons({
   postId,
   score,
-  upvotesCount,
-  downvotesCount,
   layout = 'horizontal',
   className,
 }: PostVoteButtonsProps) {
-  const { userVote, isVoting, vote } = usePostVote(postId, {
-    score,
-    upvotesCount,
-    downvotesCount,
-  });
+  const { userVote, isVoting, vote } = usePostVote(postId);
 
   const isUpvoted = userVote === 'UPVOTE';
   const isDownvoted = userVote === 'DOWNVOTE';
