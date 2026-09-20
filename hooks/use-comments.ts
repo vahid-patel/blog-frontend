@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
@@ -93,7 +94,7 @@ export function useDeleteComment(postId: string, parentCommentId?: string) {
   });
 }
 
-export function useCommentVote(commentId: string) {
+export function useCommentVote(commentId: string, initialScore: number = 0) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
@@ -105,34 +106,64 @@ export function useCommentVote(commentId: string) {
     staleTime: 1000 * 60 * 5,
   });
 
+  const serverVote = myVoteData?.vote ?? null;
+
+  // Local optimistic state for instant UI response (< 1ms)
+  const [optimisticVote, setOptimisticVote] = useState<VoteType | null>(serverVote);
+  const [optimisticScore, setOptimisticScore] = useState<number>(initialScore);
+
+  useEffect(() => {
+    setOptimisticVote(serverVote);
+  }, [serverVote]);
+
+  useEffect(() => {
+    setOptimisticScore(initialScore);
+  }, [initialScore]);
+
   const voteMutation = useMutation({
     mutationFn: (type: VoteType) => voteComment(commentId, type),
     onMutate: async (newVoteType) => {
       await queryClient.cancelQueries({ queryKey: ['comment-vote', commentId] });
 
-      const previousVote = queryClient.getQueryData<{ vote: VoteType | null }>([
-        'comment-vote',
-        commentId,
-      ]);
+      const prevVote = optimisticVote;
+      const prevScore = optimisticScore;
 
-      const currentVote = previousVote?.vote ?? null;
       let nextVote: VoteType | null = newVoteType;
+      let scoreDelta = 0;
 
-      if (currentVote === newVoteType) {
+      if (prevVote === newVoteType) {
         nextVote = null;
+        scoreDelta = newVoteType === 'UPVOTE' ? -1 : 1;
+      } else if (prevVote === 'UPVOTE' && newVoteType === 'DOWNVOTE') {
+        scoreDelta = -2;
+      } else if (prevVote === 'DOWNVOTE' && newVoteType === 'UPVOTE') {
+        scoreDelta = 2;
+      } else {
+        scoreDelta = newVoteType === 'UPVOTE' ? 1 : -1;
       }
+
+      const nextScore = prevScore + scoreDelta;
+
+      setOptimisticVote(nextVote);
+      setOptimisticScore(nextScore);
 
       queryClient.setQueryData(['comment-vote', commentId], { vote: nextVote });
 
-      return { previousVote };
+      return { prevVote, prevScore };
     },
     onError: (_err, _newVoteType, context) => {
-      if (context?.previousVote !== undefined) {
-        queryClient.setQueryData(['comment-vote', commentId], context.previousVote);
+      if (context) {
+        setOptimisticVote(context.prevVote);
+        setOptimisticScore(context.prevScore);
+        queryClient.setQueryData(['comment-vote', commentId], { vote: context.prevVote });
       }
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['comment-vote', commentId], { vote: data.vote });
+      setOptimisticVote(data.vote);
+      if (typeof data.upvotesCount === 'number' && typeof data.downvotesCount === 'number') {
+        setOptimisticScore(data.upvotesCount - data.downvotesCount);
+      }
       queryClient.invalidateQueries({ queryKey: ['comments'] });
       queryClient.invalidateQueries({ queryKey: ['replies'] });
     },
@@ -147,7 +178,8 @@ export function useCommentVote(commentId: string) {
   };
 
   return {
-    userVote: myVoteData?.vote ?? null,
+    userVote: optimisticVote,
+    score: optimisticScore,
     isVoting: voteMutation.isPending,
     vote: handleVote,
   };
