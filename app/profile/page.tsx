@@ -15,6 +15,8 @@ import {
 } from '@/lib/validations/password';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
+import PasswordRequirements from '@/components/auth/password-requirements';
 import { Label } from '@/components/ui/label';
 import {
   User as UserIcon,
@@ -38,11 +40,15 @@ function ProfileContent({ user }: { user: UserProfile }) {
   const {
     register,
     handleSubmit,
+    watch,
     reset,
     formState: { errors: passwordErrors },
   } = useForm<PasswordChangeFormData>({
     resolver: zodResolver(passwordChangeSchema),
+    mode: 'onChange',
   });
+
+  const currentNewPassword = watch('newPassword') || '';
 
   const handleUpdateName = (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,10 +245,9 @@ function ProfileContent({ user }: { user: UserProfile }) {
               <form onSubmit={handleSubmit(handleChangePassword)} className="space-y-4 max-w-md">
                 <div className="space-y-2">
                   <Label htmlFor="prevPassword">Current Password</Label>
-                  <Input
+                  <PasswordInput
                     id="prevPassword"
-                    type="password"
-                    placeholder="••••••••"
+                    placeholder="Enter current password"
                     {...register('prevPassword')}
                   />
                   {passwordErrors.prevPassword && (
@@ -254,10 +259,9 @@ function ProfileContent({ user }: { user: UserProfile }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">New Password</Label>
-                  <Input
+                  <PasswordInput
                     id="newPassword"
-                    type="password"
-                    placeholder="••••••••"
+                    placeholder="Enter new strong password"
                     {...register('newPassword')}
                   />
                   {passwordErrors.newPassword && (
@@ -265,14 +269,14 @@ function ProfileContent({ user }: { user: UserProfile }) {
                       {passwordErrors.newPassword.message}
                     </p>
                   )}
+                  <PasswordRequirements password={currentNewPassword} />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
+                  <PasswordInput
                     id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
+                    placeholder="Confirm new password"
                     {...register('confirmPassword')}
                   />
                   {passwordErrors.confirmPassword && (

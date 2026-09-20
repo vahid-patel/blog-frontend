@@ -10,6 +10,8 @@ import { signup } from '@/services/auth';
 import { signupSchema, SignupFormData } from '@/lib/validations/signup';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
+import PasswordRequirements from '@/components/auth/password-requirements';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, Sparkles } from 'lucide-react';
 
@@ -20,10 +22,14 @@ export default function SignupPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
+    mode: 'onChange',
   });
+
+  const currentPassword = watch('password') || '';
 
   const onSubmit = async (data: SignupFormData) => {
     try {
@@ -88,15 +94,15 @@ export default function SignupPage() {
             {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
-                placeholder="••••••••"
+                placeholder="Create a strong password"
                 {...register('password')}
               />
               {errors.password && (
                 <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
+              <PasswordRequirements password={currentPassword} />
             </div>
 
             {signupError && (

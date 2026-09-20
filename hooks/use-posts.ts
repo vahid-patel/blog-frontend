@@ -11,19 +11,20 @@ import {
   updatePost,
   deletePost,
   type UpdatePostRequest,
+  type SortByOption,
 } from '@/services/posts';
 
-export function usePosts(page = 1, limit = 10) {
+export function usePosts(page = 1, limit = 10, sortBy: SortByOption = 'newest') {
   return useQuery({
-    queryKey: ['posts', page, limit],
-    queryFn: () => getPosts(page, limit),
+    queryKey: ['posts', page, limit, sortBy],
+    queryFn: () => getPosts(page, limit, sortBy),
   });
 }
 
-export function useInfinitePosts(limit = 10) {
+export function useInfinitePosts(limit = 6, sortBy: SortByOption = 'newest') {
   return useInfiniteQuery({
-    queryKey: ['posts', 'infinite', limit],
-    queryFn: ({ pageParam = 1 }) => getPosts(pageParam, limit),
+    queryKey: ['posts', 'infinite', limit, sortBy],
+    queryFn: ({ pageParam = 1 }) => getPosts(pageParam, limit, sortBy),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       if (lastPage.page < lastPage.totalPages) {

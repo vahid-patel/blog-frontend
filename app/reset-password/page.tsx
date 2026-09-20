@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { resetPassword } from '@/services/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
+import PasswordRequirements, { checkPasswordStrength } from '@/components/auth/password-requirements';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, CheckCircle2, Lock, Loader2, ArrowLeft } from 'lucide-react';
 
@@ -34,13 +36,14 @@ function ResetPasswordContent() {
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+    const { isComplete } = checkPasswordStrength(newPassword);
+    if (!isComplete) {
+      setError('Please ensure your new password satisfies all strength requirements.');
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match.');
       return;
     }
 
@@ -89,21 +92,20 @@ function ResetPasswordContent() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="newPassword">New Password</Label>
-              <Input
+              <PasswordInput
                 id="newPassword"
-                type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
                 required
               />
+              <PasswordRequirements password={newPassword} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"

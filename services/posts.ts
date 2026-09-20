@@ -30,14 +30,18 @@ export interface GetPostsResponse {
   posts: Post[];
 }
 
+export type SortByOption = 'newest' | 'oldest' | 'most_liked' | 'trending';
+
 export const getPosts = async (
   page = 1,
-  limit = 5,
+  limit = 6,
+  sortBy: SortByOption = 'newest'
 ): Promise<GetPostsResponse> => {
   const response = await api.get<GetPostsResponse>("/posts", {
     params: {
       page,
       limit,
+      sortBy,
     },
   });
 
