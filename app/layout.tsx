@@ -4,6 +4,7 @@ import './globals.css';
 import QueryProvider from '@/providers/query-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import Navbar from '@/components/navbar/navbar';
+import ServerWarmup from '@/components/common/server-warmup';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -35,6 +36,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
+            <ServerWarmup />
             <Navbar />
             {children}
           </QueryProvider>

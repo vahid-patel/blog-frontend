@@ -1,26 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useInfinitePosts } from '@/hooks/use-posts';
 import PostCard from '@/components/posts/post-card';
 import { POST_CATEGORIES } from '@/lib/constants/post-categories';
-import { Search, Loader2, Sparkles, ArrowRight, PenSquare } from 'lucide-react';
+import { Search, Loader2, Sparkles, ArrowRight, PenSquare, RefreshCw, Zap, ServerCrash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const router = useRouter();
   const [keyword, setKeyword] = useState('');
+  const [loadSeconds, setLoadSeconds] = useState(0);
 
   const {
     data,
     isLoading,
     isError,
+    refetch,
+    isRefetching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useInfinitePosts(6);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading || isRefetching) {
+      interval = setInterval(() => {
+        setLoadSeconds((s) => s + 1);
+      }, 1000);
+    } else {
+      setLoadSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [isLoading, isRefetching]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,9 +132,27 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Loading Skeleton */}
-        {isLoading ? (
+        {/* Loading State with Server Wake-up Notice */}
+        {isLoading || isRefetching ? (
           <div className="space-y-4">
+            {loadSeconds >= 3 && (
+              <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground shadow-xs animate-in fade-in duration-300">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                  <Zap className="h-5 w-5 animate-pulse" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-xs text-foreground flex items-center gap-2">
+                    <span>Waking up server container...</span>
+                    <span className="text-[11px] font-normal text-muted-foreground">({loadSeconds}s)</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Free-tier server is spinning up from idle mode. Your feed will display automatically.
+                  </p>
+                </div>
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
@@ -128,8 +161,27 @@ export default function Home() {
             ))}
           </div>
         ) : isError ? (
-          <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-8 text-center text-sm text-destructive">
-            Failed to load feed. Please check your backend connection.
+          <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-xs">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 mb-4">
+              <ServerCrash className="h-6 w-6" />
+            </div>
+            <h3 className="text-base font-semibold text-foreground">
+              Server took longer than expected to wake up
+            </h3>
+            <p className="mx-auto mt-1.5 max-w-md text-xs text-muted-foreground">
+              Because the backend is hosted on a free-tier sleeping container, it might need another moment to finish booting.
+            </p>
+
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Button
+                onClick={() => refetch()}
+                className="gap-2 rounded-xl"
+                size="sm"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Retry Loading Feed</span>
+              </Button>
+            </div>
           </div>
         ) : allPosts.length > 0 ? (
           <div className="space-y-5">
