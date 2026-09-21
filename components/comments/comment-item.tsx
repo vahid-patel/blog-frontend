@@ -47,7 +47,9 @@ export default function CommentItem({
   const [isEditing, setIsEditing] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
 
-  const isOwner = user?.userId === comment.author?._id;
+  const currentUserId = user?.userId || (user as any)?._id || (user as any)?.id;
+  const commentAuthorId = typeof comment.author === 'string' ? comment.author : comment.author?._id || (comment.author as any)?.id;
+  const isOwner = Boolean(currentUserId && commentAuthorId && currentUserId === commentAuthorId);
   const isAdmin = user?.role === 'ADMIN';
 
   // Replies query for comments/replies

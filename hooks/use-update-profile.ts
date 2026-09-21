@@ -15,11 +15,11 @@ export function useUpdateProfile() {
     mutationFn: (data: UpdateProfileRequest) => updateProfile(data),
 
     onSuccess: (response) => {
-      if (user) {
+      if (user && response?.updatedUser) {
         setUser({
           ...user,
-          name: response.updatedUser.name,
-          email: response.updatedUser.email,
+          name: response.updatedUser.name || user.name,
+          email: response.updatedUser.email || user.email,
         });
       }
 

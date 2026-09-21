@@ -1,6 +1,6 @@
 'use client';
 
-import { useProfile } from '@/hooks/use-profile';
+import { useProfile, useDeleteMyAccount } from '@/hooks/use-profile';
 import type { UserProfile } from '@/services/users';
 import { useState } from 'react';
 import { useUpdateProfile } from '@/hooks/use-update-profile';
@@ -356,6 +356,18 @@ function ProfileContent({ user }: { user: UserProfile }) {
     );
   };
 
+  const deleteAccountMutation = useDeleteMyAccount();
+
+  const handleDeleteAccount = () => {
+    if (
+      window.confirm(
+        'Are you absolutely sure you want to delete your account? All your posts, comments, and profile data will be permanently deleted. This action cannot be undone.'
+      )
+    ) {
+      deleteAccountMutation.mutate();
+    }
+  };
+
   const handleLogout = () => {
     logout();
     window.location.href = '/';
@@ -634,6 +646,35 @@ function ProfileContent({ user }: { user: UserProfile }) {
                   </div>
                 )}
               </form>
+
+              {/* Danger Zone: Account Deletion */}
+              <div className="mt-10 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-destructive">
+                      Delete Account
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
+                      Permanently delete your account, published stories, and profile data. This action is irreversible.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDeleteAccount}
+                    disabled={deleteAccountMutation.isPending}
+                    className="gap-1.5 rounded-xl text-xs font-semibold shrink-0"
+                  >
+                    {deleteAccountMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                    <span>{deleteAccountMutation.isPending ? 'Deleting Account...' : 'Delete My Account'}</span>
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>

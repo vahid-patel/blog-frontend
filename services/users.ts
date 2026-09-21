@@ -37,3 +37,20 @@ export const getProfile = async (): Promise<UserProfile> => {
 
   return response.data;
 };
+
+export const getAllUsers = async (): Promise<UserProfile[]> => {
+  const response = await api.get<UserProfile[]>("/users/all");
+  return response.data;
+};
+
+export const deleteMyAccount = async (): Promise<{ message: string }> => {
+  const response = await api.delete<{ message: string }>("/users/delete/myaccount");
+  return response.data;
+};
+
+export const deleteUserById = async (
+  id: string
+): Promise<{ message: string }> => {
+  const response = await api.delete<{ message: string }>(`/users/delete/${id}`);
+  return response.data;
+};

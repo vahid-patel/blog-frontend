@@ -69,7 +69,9 @@ export default function PostDetailsPage({ params }: PostDetailsPageProps) {
     );
   }
 
-  const isAuthor = user?.userId === post.author?._id;
+  const currentUserId = user?.userId || (user as any)?._id || (user as any)?.id;
+  const postAuthorId = typeof post.author === 'string' ? post.author : post.author?._id || (post.author as any)?.id;
+  const isAuthor = Boolean(currentUserId && postAuthorId && currentUserId === postAuthorId);
   const isAdmin = user?.role === 'ADMIN';
 
   const handleDelete = () => {

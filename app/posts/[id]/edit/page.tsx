@@ -8,6 +8,7 @@ import { POST_CATEGORIES } from '@/lib/constants/post-categories';
 import { usePost, useUpdatePost } from '@/hooks/use-posts';
 import type { Post } from '@/services/posts';
 import { useAuthStore } from '@/store/auth-store';
+import { useMounted } from '@/hooks/use-mounted';
 import PostEditor from '@/components/posts/post-editor';
 import PostContent from '@/components/posts/post-content';
 import { uploadImage } from '@/services/upload';
@@ -539,10 +540,11 @@ function EditPostForm({ post, id }: EditPostFormProps) {
 
 export default function EditPostPage({ params }: EditPostPageProps) {
   const { id } = use(params);
+  const mounted = useMounted();
   const { user, isAuthenticated } = useAuthStore();
   const { data: post, isLoading, isError } = usePost(id);
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -566,7 +568,9 @@ export default function EditPostPage({ params }: EditPostPageProps) {
     );
   }
 
-  const isOwner = user?.userId === post.author?._id;
+  const currentUserId = user?.userId || (user as any)?._id || (user as any)?.id;
+  const postAuthorId = typeof post.author === 'string' ? post.author : post.author?._id || (post.author as any)?.id;
+  const isOwner = Boolean(currentUserId && postAuthorId && currentUserId === postAuthorId);
   const isAdmin = user?.role === 'ADMIN';
 
   if (!isAuthenticated || (!isOwner && !isAdmin)) {
