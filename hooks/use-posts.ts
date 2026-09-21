@@ -14,10 +14,23 @@ import {
   type SortByOption,
 } from '@/services/posts';
 
-export function usePosts(page = 1, limit = 10, sortBy: SortByOption = 'newest') {
+export function usePosts(page = 1, limit = 10, sortBy: SortByOption = 'newest', author?: string) {
   return useQuery({
-    queryKey: ['posts', page, limit, sortBy],
-    queryFn: () => getPosts(page, limit, sortBy),
+    queryKey: ['posts', page, limit, sortBy, author],
+    queryFn: () => getPosts(page, limit, sortBy, author),
+  });
+}
+
+export function useUserPosts(
+  authorId?: string,
+  page = 1,
+  limit = 10,
+  sortBy: SortByOption = 'newest'
+) {
+  return useQuery({
+    queryKey: ['posts', 'user', authorId, page, limit, sortBy],
+    queryFn: () => getPosts(page, limit, sortBy, authorId),
+    enabled: Boolean(authorId),
   });
 }
 

@@ -83,13 +83,13 @@ export default function PostDetailsPage({ params }: PostDetailsPageProps) {
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <main className="mx-auto max-w-3xl px-3 py-6 sm:px-6 sm:py-10">
       <article>
         {/* Navigation / Back link & Author Actions */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground transition hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Feed</span>
@@ -97,15 +97,15 @@ export default function PostDetailsPage({ params }: PostDetailsPageProps) {
 
           <div className="flex items-center gap-2">
             {post.category && (
-              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <span className="rounded-full bg-primary/10 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-semibold text-primary">
                 {post.category.replaceAll('_', ' ')}
               </span>
             )}
 
             {(isAuthor || isAdmin) && (
-              <div className="flex items-center gap-1 ml-2 border-l pl-2">
+              <div className="flex items-center gap-1 ml-1 sm:ml-2 border-l pl-1.5 sm:pl-2">
                 <Link href={`/posts/${post._id}/edit`}>
-                  <Button variant="outline" size="sm" className="h-8 gap-1 text-xs">
+                  <Button variant="outline" size="sm" className="h-7 sm:h-8 px-2 sm:px-2.5 gap-1 text-xs rounded-lg">
                     <Pencil className="h-3.5 w-3.5" />
                     <span>Edit</span>
                   </Button>
@@ -115,7 +115,7 @@ export default function PostDetailsPage({ params }: PostDetailsPageProps) {
                   size="sm"
                   onClick={handleDelete}
                   disabled={deletePostMutation.isPending}
-                  className="h-8 gap-1 text-xs"
+                  className="h-7 sm:h-8 px-2 sm:px-2.5 gap-1 text-xs rounded-lg"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   <span>{deletePostMutation.isPending ? 'Deleting...' : 'Delete'}</span>
@@ -126,38 +126,38 @@ export default function PostDetailsPage({ params }: PostDetailsPageProps) {
         </div>
 
         {/* Post Title */}
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-5xl sm:leading-tight">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground leading-tight sm:leading-tight break-words">
           {post.title}
         </h1>
 
         {/* Cover Image */}
         {post.coverImage && (
-          <div className="mt-6 overflow-hidden rounded-2xl border border-border/60 shadow-sm">
+          <div className="mt-4 sm:mt-6 overflow-hidden rounded-2xl border border-border/60 shadow-sm bg-muted/20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={post.coverImage}
               alt={post.title}
-              className="h-80 sm:h-96 w-full object-cover"
+              className="h-48 sm:h-80 md:h-96 w-full object-cover"
             />
           </div>
         )}
 
         {/* Author Header & Date & Read Time */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-border/60 py-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
+        <div className="mt-5 sm:mt-6 flex flex-wrap items-center justify-between gap-3 sm:gap-4 border-y border-border/60 py-3 sm:py-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <span className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs sm:text-sm font-bold text-primary">
               {post.author?.name ? post.author.name.charAt(0).toUpperCase() : 'A'}
             </span>
             <div>
-              <p className="text-sm font-semibold text-foreground">
+              <p className="text-xs sm:text-sm font-semibold text-foreground">
                 {post.author?.name || 'Anonymous'}
               </p>
-              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <p className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
                   {new Date(post.createdAt).toLocaleDateString(undefined, {
                     year: 'numeric',
-                    month: 'long',
+                    month: 'short',
                     day: 'numeric',
                   })}
                 </span>
@@ -180,24 +180,24 @@ export default function PostDetailsPage({ params }: PostDetailsPageProps) {
 
         {/* Summary Lead */}
         {post.summary && (
-          <div className="mt-6 rounded-xl border-l-4 border-primary bg-muted/30 p-4 text-base italic leading-relaxed text-muted-foreground">
+          <div className="mt-5 sm:mt-6 rounded-xl border-l-4 border-primary bg-muted/30 p-3.5 sm:p-4 text-xs sm:text-sm md:text-base italic leading-relaxed text-muted-foreground">
             {post.summary}
           </div>
         )}
 
         {/* Full Rich-Text Content */}
-        <div className="mt-8">
+        <div className="mt-6 sm:mt-8">
           <PostContent content={post.content} />
         </div>
 
         {/* Tags */}
         {post.tags && post.tags.length > 0 && (
-          <div className="mt-10 flex flex-wrap items-center gap-2 border-t border-border/60 pt-6">
-            <Tag className="h-4 w-4 text-muted-foreground" />
+          <div className="mt-8 sm:mt-10 flex flex-wrap items-center gap-1.5 sm:gap-2 border-t border-border/60 pt-5 sm:pt-6">
+            <Tag className="h-3.5 w-3.5 text-muted-foreground" />
             {post.tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                className="rounded-md bg-muted px-2 sm:px-2.5 py-0.5 sm:py-1 text-[11px] sm:text-xs font-medium text-muted-foreground"
               >
                 #{tag}
               </span>
@@ -206,13 +206,13 @@ export default function PostDetailsPage({ params }: PostDetailsPageProps) {
         )}
 
         {/* Post Bottom Bar */}
-        <div className="mt-8 flex items-center justify-between rounded-xl border bg-card p-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground">
+        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border bg-card p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span className="text-xs sm:text-sm font-semibold text-foreground">
               Enjoyed this article?
             </span>
-            <span className="text-xs text-muted-foreground">
-              Vote to show appreciation
+            <span className="text-[11px] sm:text-xs text-muted-foreground">
+              Vote to support the creator
             </span>
           </div>
 

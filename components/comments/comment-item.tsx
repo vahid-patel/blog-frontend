@@ -112,26 +112,26 @@ export default function CommentItem({
     <div
       className={`group relative ${
         isReply
-          ? depth > 3
-            ? 'mt-3 pl-3 border-l-2 border-primary/30'
-            : 'mt-3 pl-4 border-l-2 border-border/70'
-          : 'py-4 border-b border-border/40'
+          ? depth > 2
+            ? 'mt-2.5 pl-2 sm:pl-3.5 border-l-2 border-primary/30'
+            : 'mt-3 pl-2.5 sm:pl-4 border-l-2 border-border/70'
+          : 'py-3.5 sm:py-4 border-b border-border/40'
       }`}
     >
       {/* Author & Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          <span className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
             {comment.author?.name ? comment.author.name.charAt(0).toUpperCase() : 'A'}
           </span>
-          <div>
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
             <span className="text-xs font-semibold text-foreground">
               {comment.author?.name || 'Anonymous'}
             </span>
-            <span className="mx-1.5 text-xs text-muted-foreground">•</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">•</span>
             <time
               dateTime={comment.createdAt}
-              className="text-xs text-muted-foreground"
+              className="text-[10px] sm:text-xs text-muted-foreground"
             >
               {new Date(comment.createdAt).toLocaleDateString(undefined, {
                 month: 'short',
@@ -146,8 +146,8 @@ export default function CommentItem({
         {/* Edit / Delete Dropdown for owner/admin */}
         {(isOwner || isAdmin) && (
           <DropdownMenu>
-            <DropdownMenuTrigger className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
-              <MoreVertical className="h-4 w-4" />
+            <DropdownMenuTrigger className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
+              <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
               {isOwner && (
@@ -173,7 +173,7 @@ export default function CommentItem({
       </div>
 
       {/* Content or Edit Form */}
-      <div className="mt-2 text-sm text-foreground/90 pl-9.5">
+      <div className="mt-2 text-xs sm:text-sm text-foreground/90 pl-7 sm:pl-9.5">
         {isEditing ? (
           <div className="mt-2">
             <CommentInput

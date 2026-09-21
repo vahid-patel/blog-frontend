@@ -35,13 +35,17 @@ export type SortByOption = 'newest' | 'oldest' | 'most_liked' | 'trending';
 export const getPosts = async (
   page = 1,
   limit = 6,
-  sortBy: SortByOption = 'newest'
+  sortBy: SortByOption = 'newest',
+  author?: string,
+  status?: string
 ): Promise<GetPostsResponse> => {
   const response = await api.get<GetPostsResponse>("/posts", {
     params: {
       page,
       limit,
       sortBy,
+      ...(author ? { author } : {}),
+      ...(status ? { status } : {}),
     },
   });
 
